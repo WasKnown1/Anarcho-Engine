@@ -6,19 +6,28 @@
 static ThreadSafe<bool> windowShouldClose = false;
 static AEFrameBuffer aeFrameBuffer = {0};
 static AEWindow aeWindow = {0};
-
 static ThreadSafe<i32> yValue = 100;
+static ThreadSafe<bool> cursorVisible = true;
 
 u0 draw() {
+    aeSetCursorPosition(aeWindow.windowRect->width / 2, aeWindow.windowRect->height / 2);
     aeFillWindow(aeWindow, 0xff00ffff);
     aeDrawCircle(aeFrameBuffer, 100, aeGetThreadSafeValue(&yValue), 50, 0xffff0000);
-    // aeSetThreadSafeValue(&yValue, aeGetThreadSafeValue(&yValue) + 1);
 
     aeInvalidateWindow(aeWindow);
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     if (aeGetKeyState('W')) {
         aeSetThreadSafeValue(&yValue, aeGetThreadSafeValue(&yValue) + 1);
+    }
+    if (aeGetKeyState('S')) {
+        aeSetThreadSafeValue(&yValue, aeGetThreadSafeValue(&yValue) - 1);
+    } 
+    if (aeGetKeyState('D')) {
+        aeSetThreadSafeValue(&cursorVisible, false);
+    } 
+    if (aeGetKeyState('A')) {
+        aeSetThreadSafeValue(&cursorVisible, true);
     }
 }
 
@@ -41,12 +50,26 @@ int main() {
 
                 EndPaint(window_handle, &Paint);
             } break;
+            case WM_INPUT: {
+                int x, y;
+                aeGetMouseRawDataInput(&x, &y, lParam);
+                printf("Mouse movement: %d, %d\n", x, y);
+            } break;
+            case WM_SETCURSOR: {
+                if (aeGetThreadSafeValue(&cursorVisible)) {
+                    aeShowCursor();
+                } else {
+                    aeHideCursor();
+                }
+                return TRUE;
+            } break;
             default: {
                 return DefWindowProcW(window_handle, message, wParam, lParam);
             } break;
         }
         return 0;
     };
+
     aeCreateInstance(&aeInstance, L"My Class", proc);
     aeInstance.winClassW.hCursor = aeLoadCursor(NULL, IDC_ARROW);
 
@@ -117,6 +140,8 @@ int main() {
 
     aeCreateFrameBuffer(&aeFrameBuffer, windowRect);
     aeCreateWindow(&aeWindow, &aeFrameBuffer, aeInstance, L"Anarcho Game Engine", windowRect);
+
+    aeRegisterRawInputDevices(aeWindow);
 
     aeFillWindow(aeWindow, 0xff00ffff);
     // AEThread aeThread;

@@ -53,4 +53,37 @@ inline u0 aeClientToScreen(AEWindow aeWindow, i32 *x, i32 *y) {
     *y = point.y;
 }
 
+inline u0 aeRegisterRawInputDevices(AEWindow aeWindow) {
+    RAWINPUTDEVICE rid[1];
+    rid[0].usUsagePage = 0x01;        // Generic desktop controls
+    rid[0].usUsage = 0x02;            // Mouse
+    rid[0].dwFlags = RIDEV_INPUTSINK; // Receive input even when not in the foreground
+    rid[0].hwndTarget = aeWindow.windowHandle;
+
+    if (RegisterRawInputDevices(rid, 1, sizeof(rid[0])) == FALSE) {
+        printf("Successfully registered for raw input.\n");
+    } else {
+        printf("Failed to register for raw input.\n");
+    }
+}
+
+inline u0 aeGetMouseRawDataInput(i32 *deltaX, i32 *deltaY, LPARAM lParam) { 
+    UINT dwSize = sizeof(RAWINPUT);
+    static BYTE lpb[sizeof(RAWINPUT)];
+    
+    GetRawInputData((HRAWINPUT)lParam, RID_INPUT, 
+                    lpb, &dwSize, sizeof(RAWINPUTHEADER));
+    
+    RAWINPUT* raw = (RAWINPUT*)lpb;
+    if (raw->header.dwType == RIM_TYPEMOUSE) {
+        RAWMOUSE mouseData = raw->data.mouse;
+
+        *deltaX = mouseData.lLastX;
+        *deltaY = mouseData.lLastY;
+    }
+}
+
+#define aeShowCursor() SetCursor(aeLoadCursor(NULL, IDC_ARROW))
+#define aeHideCursor() SetCursor(NULL)
+
 #endif // anarcho_main_hpp

@@ -53,8 +53,9 @@ class AEGpuKernel {
             kernel = cl::Kernel(program, kernelName);
         }
 
-        u0 setArg(u32 index, AEGpuVRamBuffer buffer) {
-            kernel.setArg(index, buffer);
+        template<typename T>
+        u0 setArg(u32 index, T value) {
+            kernel.setArg(index, value);
         }
 
         cl::Kernel getKernel() {
